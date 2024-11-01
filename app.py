@@ -212,5 +212,4 @@ def get_user_profile(user_id):
         return jsonify({'error': 'User not found'}), 404
         
 if __name__ == '__main__':
-    port=5050
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0')
