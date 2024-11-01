@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # MongoDB connection setup (replace with your MongoDB URI)
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient('mongodb+srv://prakritisewa04:1WD1aXKSdfztLgWH@cluster0.ntnzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
 db = client['SocialWorkerApp']  # Replace with your database name
 users_collection = db['users']  # Replace with your collection name
 media_collection = db['media']  # Define the media collection
