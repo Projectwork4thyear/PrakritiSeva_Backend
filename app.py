@@ -4,6 +4,7 @@ from pymongo import MongoClient, DESCENDING
 import bcrypt
 from datetime import datetime, timezone
 import re
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -210,6 +211,6 @@ def get_user_profile(user_id):
     else:
         return jsonify({'error': 'User not found'}), 404
         
-# Run the Flask app
-if __name__ == '__main__':
-    app.run(debug=True)
+if _name_ == '_main_':
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
