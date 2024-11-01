@@ -212,5 +212,5 @@ def get_user_profile(user_id):
         return jsonify({'error': 'User not found'}), 404
         
 if _name_ == '_main_':
-    port = int(os.getenv('PORT', 5000))
+    port=5050
     app.run(host='0.0.0.0', port=port)
