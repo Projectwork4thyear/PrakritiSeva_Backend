@@ -116,12 +116,6 @@ def get_media():
 
     # Query to get all media documents for the specified user
     media_data = list(media_collection.find({"userId": user_id}, {"_id": 0}))
-
-    # Log each media URL to the console
-    print("Fetched media URLs for user:", user_id)
-    for media in media_data:
-        print("Media URL:", media.get("url", "No URL"))
-
     return jsonify({"media": media_data}), 200
 
 #Get store data
