@@ -17,6 +17,13 @@ users_collection = db['users']  # Replace with your collection name
 media_collection = db['media']  # Define the media collection
 store_collection = db['store']  # Define the store collection
 
+@app.route('/', methods=['GET'])
+def check_status():
+    # Here, you can add any logic to check if the server is actually ready.
+    # For example, check if necessary services or databases are connected.
+    # In this case, we'll just return a simple "ready" message.
+    return jsonify({"status": "ready", "message": "Server is up and running!"}), 200
+
 @app.route('/get_latest_media', methods=['GET'])
 def get_latest_media():
     try:
