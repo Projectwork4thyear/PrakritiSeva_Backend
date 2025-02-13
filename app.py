@@ -4,7 +4,6 @@ from pymongo import MongoClient, DESCENDING
 import bcrypt
 from datetime import datetime, timezone
 import re
-import os
 
 # Initialize Flask app
 app = Flask(__name__)
