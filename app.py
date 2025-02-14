@@ -10,7 +10,8 @@ app = Flask(__name__)
 CORS(app)
 
 # MongoDB connection setup (replace with your MongoDB URI)
-client = MongoClient('mongodb+srv://prakritisewa04:1WD1aXKSdfztLgWH@cluster0.ntnzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+client = MongoClient('mongodb+srv://prakritisewa04:01012004@cluster0.ntnzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+#client = MongoClient('mongodb://localhost:27017/')
 db = client['SocialWorkerApp']  # Replace with your database name
 users_collection = db['users']  # Replace with your collection name
 media_collection = db['media']  # Define the media collection
@@ -40,6 +41,7 @@ def get_latest_media():
                 'username':user['username'],
                 'userId': user['userId'],
                 'profPhoto':  profile_photo,
+                'likes_count': len(media["likes"]),
             })
         
         return jsonify({'media': media_list}), 200
@@ -83,8 +85,8 @@ def register():
         "username": username,
         "email": email,
         "password": hashed_password,
-        "profPhoto": profPhoto
-
+        "profPhoto": profPhoto,
+        "coins" : 0,
     }
 
     users_collection.insert_one(user)
@@ -106,7 +108,8 @@ def save_media_url():
         "url": url,
         "userId": user_id,
         "mediaType": media_type,
-        "timestamp": datetime.now(tz=timezone.utc)
+        "timestamp": datetime.now(tz=timezone.utc),
+        "likes": [],
     }
 
     media_collection.insert_one(media_data)
@@ -217,6 +220,54 @@ def get_user_profile(user_id):
         }), 200
     else:
         return jsonify({'error': 'User not found'}), 404
-        
+    
+@app.route('/fetch_likes', methods=['GET'])
+def get_likes_count():
+    media_url = request.args.get('mediaUrl')
+    if not media_url:
+        return jsonify({"error": "Missing media URL"}), 400
+    
+    post = media_collection.find_one({"url": media_url})
+    if not post:
+        print("post not found")
+        return jsonify({"error": "Post not found"}), 404
+
+    return jsonify({"likes_count": len(post["likes"])}), 200
+
+@app.route('/update_likes', methods=['POST'])
+def update_likes():
+    data = request.get_json()
+    media_url = data.get("mediaUrl")
+    user_id = data.get("userId")
+
+    if not media_url or not user_id:
+        return jsonify({"error": "Missing fields"}), 400
+
+    post = media_collection.find_one({"url": media_url})
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+
+    # Add or remove like
+    if user_id in post["likes"]:
+        media_collection.update_one({"url": media_url}, {"$pull": {"likes": user_id}})
+    else:
+        media_collection.update_one({"url": media_url}, {"$addToSet": {"likes": user_id}})
+
+    updated_post = media_collection.find_one({"url": media_url})
+    return jsonify({"likes_count": len(updated_post["likes"])}), 200
+
+@app.route('/fetch_coins', methods=['GET'])
+def get_coins():
+    userId = request.args.get('userId')
+    if not userId:
+        return jsonify({"error": "Missing userId"}), 400
+    
+    user = users_collection.find_one({"userId": userId})
+    if not user:
+        print("User not found")
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({"coins": user["coins"]}), 200
+           
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port = 8080)
