@@ -10,8 +10,8 @@ app = Flask(__name__)
 CORS(app)
 
 # MongoDB connection setup (replace with your MongoDB URI)
-client = MongoClient('mongodb+srv://prakritisewa04:01012004@cluster0.ntnzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
-#client = MongoClient('mongodb://localhost:27017/')
+#client = MongoClient('mongodb+srv://prakritisewa04:01012004@cluster0.ntnzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+client = MongoClient('mongodb://localhost:27017/')
 db = client['SocialWorkerApp']  # Replace with your database name
 users_collection = db['users']  # Replace with your collection name
 media_collection = db['media']  # Define the media collection
@@ -42,6 +42,7 @@ def get_latest_media():
                 'userId': user['userId'],
                 'profPhoto':  profile_photo,
                 'likes_count': len(media["likes"]),
+                'caption': media['caption'],
             })
         
         return jsonify({'media': media_list}), 200
@@ -99,6 +100,7 @@ def save_media_url():
     url = data.get('url')
     user_id = data.get('userId')
     media_type = data.get('mediaType')
+    caption = data.get('caption')
 
     if not url or not user_id or not media_type:
         return jsonify({"error": "Missing fields"}), 400
@@ -110,6 +112,7 @@ def save_media_url():
         "mediaType": media_type,
         "timestamp": datetime.now(tz=timezone.utc),
         "likes": [],
+        "caption": caption,
     }
 
     media_collection.insert_one(media_data)
@@ -268,6 +271,11 @@ def get_coins():
         return jsonify({"error": "User not found"}), 404
     
     return jsonify({"coins": user["coins"]}), 200
-           
+
+@app.route('/update_coins', methods=['POST'])
+def update_coins():
+    #response from ai model
+    return jsonify(),100
+               
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port = 8080)
