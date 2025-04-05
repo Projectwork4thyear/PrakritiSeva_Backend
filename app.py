@@ -278,8 +278,44 @@ def get_coins():
 
 @app.route('/update_coins', methods=['POST'])
 def update_coins():
-    #response from ai model
-    return jsonify(),100
+    # Get userId from query parameters
+    userId = request.args.get('userId')
+    if not userId:
+        return jsonify({"error": "Missing userId"}), 400
+    
+    # Get the request data (assuming you're sending coins amount in the request body)
+    data = request.get_json()
+    if not data or 'coins' not in data:
+        return jsonify({"error": "Missing coins amount"}), 400
+    
+    coins = data['coins']
+    
+    # Check if user exists
+    user = users_collection.find_one({"userId": userId})
+    if not user:
+        print("User not found")
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        # Update user's coins (increment by the specified amount)
+        result = users_collection.update_one(
+            {"userId": userId},
+            {"$inc": {"coins": coins}}  # Use $inc to increment the coins
+        )
+        
+        if result.modified_count == 1:
+            # Get updated user data to return the new coin balance
+            updated_user = users_collection.find_one({"userId": userId})
+            return jsonify({
+                "message": "Coins updated successfully",
+                "newBalance": updated_user['coins']
+            }), 200
+        else:
+            return jsonify({"error": "Failed to update coins"}), 500
+            
+    except Exception as e:
+        print(f"Error updating coins: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/process_video', methods=['POST'])
 def upload_video():
