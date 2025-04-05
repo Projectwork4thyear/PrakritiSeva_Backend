@@ -348,11 +348,13 @@ def upload_video():
                 "extracted_keywords": extracted_keywords
             })
         except Exception as e:
+            print("error: " + e)
             return jsonify({
                 "status": "error",
                 "message": str(e)
             }), 500
     else:
+        print('File not allowed')
         return jsonify({
             "status": "error",
             "message": "File type not allowed"
