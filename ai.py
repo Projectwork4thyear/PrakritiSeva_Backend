@@ -123,6 +123,8 @@ def upload_video():
             
             # Clean up
             os.unlink(temp_video.name)
+
+            print(extracted_keywords)
             
             return jsonify({
                 "status": "success",
