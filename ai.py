@@ -98,7 +98,7 @@ def process_video(video_path):
     
     # Summarize the sequence
     summary_prompt = "Summarize this sequence of actions: " + " ".join(captions)
-    model = genai.GenerativeModel("gemini-1.5-pro")
+    model = genai.GenerativeModel("gemini-1.5-pro-002")
     summary_response = model.generate_content([summary_prompt], stream=False)
     
     summary_text = summary_response.text.strip() if summary_response and hasattr(summary_response, "text") else "No summary generated."
