@@ -348,7 +348,7 @@ def upload_video():
                 "extracted_keywords": extracted_keywords
             })
         except Exception as e:
-            print("error: " + e)
+            print("error: " + str(e))
             return jsonify({
                 "status": "error",
                 "message": str(e)
