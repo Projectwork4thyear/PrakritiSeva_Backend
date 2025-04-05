@@ -3,7 +3,8 @@ python-dotenv
 opencv-python
 pillow
 ipython
-spacy 
+spacy>=3.0.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 nltk
 Flask==3.0.3
 Flask-Cors==5.0.0
