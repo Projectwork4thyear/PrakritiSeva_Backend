@@ -101,46 +101,5 @@ def process_video(video_path):
     
     return summary_text
 
-@app.route('/process_video', methods=['POST'])
-def upload_video():
-    # Check if the post request has the file part
-    if 'file' not in request.files:  # Changed from 'video' to 'file' (common Flutter convention)
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and allowed_file(file.filename):
-        try:
-            # Create a temporary file
-            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-            file.save(temp_video.name)
-            
-            summarized_caption = process_video(temp_video.name)
-            extracted_keywords = output.extract_keywords(summarized_caption)
-            
-            # Clean up
-            os.unlink(temp_video.name)
-
-            print(extracted_keywords)
-            
-            return jsonify({
-                "status": "success",
-                "summarized_caption": summarized_caption,
-                "extracted_keywords": extracted_keywords
-            })
-        except Exception as e:
-            return jsonify({
-                "status": "error",
-                "message": str(e)
-            }), 500
-    else:
-        return jsonify({
-            "status": "error",
-            "message": "File type not allowed"
-        }), 400
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5004, debug=True)
