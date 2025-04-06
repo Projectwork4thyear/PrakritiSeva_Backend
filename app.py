@@ -381,7 +381,7 @@ def place_order():
     try:
          # Get userId from query parameters
         user_Id = request.args.get('userId')
-        if not userId:
+        if not user_Id:
             return jsonify({"error": "Missing userId"}), 400
         data = request.get_json()
         item_id = data['itemId']
