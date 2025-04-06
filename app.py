@@ -387,7 +387,7 @@ def place_order():
         item_id = data['itemId']
         
         # Get user and item details
-        user = users_collection.find_one({"_id": user_id})
+        user = users_collection.find_one({"_id": user_Id})
         item = store_collection.find_one({"_id": item_id})
         
         if not user or not item:
