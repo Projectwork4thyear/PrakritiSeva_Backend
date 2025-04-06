@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+from bson import ObjectId
 
 # Load environment variables
 load_dotenv()
@@ -384,7 +385,7 @@ def place_order():
         if not user_Id:
             return jsonify({"error": "Missing userId"}), 400
         data = request.get_json()
-        item_id = data['itemId']
+        item_id = ObjectId(data['itemId'])
         
         # Get user and item details
         user = users_collection.find_one({"userId": user_Id})
