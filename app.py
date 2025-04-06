@@ -8,6 +8,9 @@ import ai
 import output
 import tempfile
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -20,6 +23,7 @@ db = client['SocialWorkerApp']  # Replace with your database name
 users_collection = db['users']  # Replace with your collection name
 media_collection = db['media']  # Define the media collection
 store_collection = db['store']  # Define the store collection
+orders_collection = db['orders']
 
 @app.route('/', methods=['GET'])
 def check_status():
@@ -359,6 +363,99 @@ def upload_video():
             "status": "error",
             "message": "File type not allowed"
         }), 400
-               
+
+# Email configuration (replace with your SMTP details)
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_ADDRESS = "prakritisewa04@gmail.com"
+EMAIL_PASSWORD = "kqulyuhyvlgfeegb"  # Use app password for Gmail
+
+@app.route('/deduct_coins', methods=['POST'])
+def deduct_coins():
+    try:
+        data = request.get_json()
+        user_id = data['userId']
+        amount = int(data['amount'])
+        
+        # Find user and deduct coins
+        user = users_collection.find_one({"_id": user_id})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        if user['coins'] < amount:
+            return jsonify({"error": "Insufficient coins"}), 400
+            
+        users_collection.update_one(
+            {"_id": user_id},
+            {"$inc": {"coins": -amount}}
+        )
+        
+        return jsonify({"success": True, "newBalance": user['coins'] - amount}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/place_order', methods=['POST'])
+def place_order():
+    try:
+        data = request.get_json()
+        user_id = data['userId']
+        item_id = data['itemId']
+        
+        # Get user and item details
+        user = users_collection.find_one({"_id": user_id})
+        item = store_collection.find_one({"_id": item_id})
+        
+        if not user or not item:
+            return jsonify({"error": "User or item not found"}), 404
+            
+        # Create order record
+        order_data = {
+            "userId": user_id,
+            "itemId": item_id,
+            "name": data['username'],
+            "address": data['address'],
+            "phone": data['phone'],
+            "status": "pending",
+            "timestamp": datetime.datetime.utcnow()
+        }
+        orders_collection.insert_one(order_data)
+        
+        # Send email to delivery partner
+        send_order_email(
+            recipient="samratdevsharma@gmail.com",
+            customer_name=data['username'],
+            item_name=item['name'],
+            address=data['address'],
+            phone=data['phone']
+        )
+        
+        return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def send_order_email(recipient, customer_name, item_name, address, phone):
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = recipient
+    msg['Subject'] = f"New Order: {item_name}"
+    
+    body = f"""
+    <h2>New Order Received</h2>
+    <p><strong>Customer:</strong> {customer_name}</p>
+    <p><strong>Item:</strong> {item_name}</p>
+    <p><strong>Delivery Address:</strong> {address}</p>
+    <p><strong>Contact Phone:</strong> {phone}</p>
+    <p>Please process this delivery within 24 hours.</p>
+    """
+    
+    msg.attach(MIMEText(body, 'html'))
+    
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.send_message(msg)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port = 8080)
