@@ -417,6 +417,7 @@ def place_order():
         return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
         
     except Exception as e:
+        print(str(e))
         return jsonify({"error": str(e)}), 500
 
 def send_order_email(recipient, customer_name, item_name, address, phone):
