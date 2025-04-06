@@ -402,7 +402,7 @@ def place_order():
             "address": data['address'],
             "phone": data['phone'],
             "status": "pending",
-            "timestamp": datetime.datetime.utcnow()
+            "timestamp": datetime.now(tz=timezone.utc)
         }
         orders_collection.insert_one(order_data)
         
