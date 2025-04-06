@@ -8,6 +8,7 @@ import ai
 import output
 import tempfile
 import os
+from html import escape
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
