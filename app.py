@@ -380,7 +380,7 @@ EMAIL_PASSWORD = email_pass # Use app password for Gmail
 def place_order():
     try:
          # Get userId from query parameters
-        userId = request.args.get('userId')
+        user_Id = request.args.get('userId')
         if not userId:
             return jsonify({"error": "Missing userId"}), 400
         data = request.get_json()
