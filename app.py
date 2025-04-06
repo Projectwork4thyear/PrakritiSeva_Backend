@@ -376,31 +376,6 @@ SMTP_PORT = 587
 EMAIL_ADDRESS = email_address
 EMAIL_PASSWORD = email_pass # Use app password for Gmail
 
-@app.route('/deduct_coins', methods=['POST'])
-def deduct_coins():
-    try:
-        data = request.get_json()
-        user_id = data['userId']
-        amount = int(data['amount'])
-        
-        # Find user and deduct coins
-        user = users_collection.find_one({"_id": user_id})
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-            
-        if user['coins'] < amount:
-            return jsonify({"error": "Insufficient coins"}), 400
-            
-        users_collection.update_one(
-            {"_id": user_id},
-            {"$inc": {"coins": -amount}}
-        )
-        
-        return jsonify({"success": True, "newBalance": user['coins'] - amount}), 200
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/place_order', methods=['POST'])
 def place_order():
     try:
