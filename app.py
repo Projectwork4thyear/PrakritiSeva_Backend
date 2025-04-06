@@ -412,7 +412,8 @@ def place_order():
             customer_name=data['username'],
             item_name=item['name'],
             address=data['address'],
-            phone=data['phone']
+            phone=data['phone'],
+            cc_recipients=user.get('email')
         )
         
         return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
@@ -421,27 +422,73 @@ def place_order():
         print(str(e))
         return jsonify({"error": str(e)}), 500
 
-def send_order_email(recipient, customer_name, item_name, address, phone):
-    msg = MIMEMultipart()
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = recipient
-    msg['Subject'] = f"New Order: {item_name}"
+def send_order_email(recipient, customer_name, item_name, address, phone, cc_recipients=None):
+    """Send order confirmation email with optional CC recipients.
     
-    body = f"""
-    <h2>New Order Received</h2>
-    <p><strong>Customer:</strong> {customer_name}</p>
-    <p><strong>Item:</strong> {item_name}</p>
-    <p><strong>Delivery Address:</strong> {address}</p>
-    <p><strong>Contact Phone:</strong> {phone}</p>
-    <p>Please process this delivery within 24 hours.</p>
+    Args:
+        recipient: Primary recipient email (str)
+        customer_name: Customer's name (str)
+        item_name: Ordered item name (str)
+        address: Delivery address (str)
+        phone: Contact phone (str)
+        cc_recipients: Optional CC recipients (str or list)
+    Returns:
+        bool: True if email sent successfully
     """
-    
-    msg.attach(MIMEText(body, 'html'))
-    
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
-
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = recipient
+        msg['Subject'] = f"New Order: {item_name}"
+        
+        # Handle CC recipients
+        if cc_recipients:
+            if isinstance(cc_recipients, str):
+                msg['Cc'] = cc_recipients
+            elif isinstance(cc_recipients, (list, tuple)):
+                msg['Cc'] = ', '.join(cc_recipients)
+        
+        # Build email body with proper HTML structure
+        body = f"""<!DOCTYPE html>
+        <html>
+        <head><style>body {{ font-family: Arial, sans-serif; }}</style></head>
+        <body>
+            <h2>New Order Received</h2>
+            <p><strong>Customer:</strong> {html.escape(customer_name)}</p>
+            <p><strong>Item:</strong> {html.escape(item_name)}</p>
+            <p><strong>Delivery Address:</strong> {html.escape(address)}</p>
+            <p><strong>Contact Phone:</strong> {html.escape(phone)}</p>
+            <hr>
+            <p>Please process this delivery within 24 hours.</p>
+        </body>
+        </html>"""
+        
+        msg.attach(MIMEText(body, 'html'))
+        
+        # Collect all recipients for SMTP
+        all_recipients = [recipient]
+        if cc_recipients:
+            if isinstance(cc_recipients, str):
+                all_recipients.append(cc_recipients)
+            else:
+                all_recipients.extend(cc_recipients)
+        
+        # Send email with error handling
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(
+                EMAIL_ADDRESS,
+                all_recipients,
+                msg.as_string()
+            )
+        return True
+        
+    except smtplib.SMTPException as e:
+        print(f"SMTP Error sending email: {e}")
+        return False
+    except Exception as e:
+        print(f"General Error sending email: {e}")
+        return False
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port = 8080)
