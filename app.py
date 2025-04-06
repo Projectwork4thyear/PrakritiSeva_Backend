@@ -11,6 +11,12 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+email_address = os.getenv("EMAIL_ADDRESS")
+email_pass = os.getenv("EMAIL_PASS")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -367,8 +373,8 @@ def upload_video():
 # Email configuration (replace with your SMTP details)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-EMAIL_ADDRESS = "prakritisewa04@gmail.com"
-EMAIL_PASSWORD = "kqulyuhyvlgfeegb"  # Use app password for Gmail
+EMAIL_ADDRESS = email_address #"prakritisewa04@gmail.com"
+EMAIL_PASSWORD = email_pass #"kqulyuhyvlgfeegb"  # Use app password for Gmail
 
 @app.route('/deduct_coins', methods=['POST'])
 def deduct_coins():
