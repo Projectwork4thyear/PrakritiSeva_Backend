@@ -395,7 +395,7 @@ def place_order():
             
         # Create order record
         order_data = {
-            "userId": user_id,
+            "userId": user_Id,
             "itemId": item_id,
             "name": data['username'],
             "address": data['address'],
