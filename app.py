@@ -455,10 +455,10 @@ def send_order_email(recipient, customer_name, item_name, address, phone, cc_rec
         <head><style>body {{ font-family: Arial, sans-serif; }}</style></head>
         <body>
             <h2>New Order Received</h2>
-            <p><strong>Customer:</strong> {html.escape(customer_name)}</p>
-            <p><strong>Item:</strong> {html.escape(item_name)}</p>
-            <p><strong>Delivery Address:</strong> {html.escape(address)}</p>
-            <p><strong>Contact Phone:</strong> {html.escape(phone)}</p>
+            <p><strong>Customer:</strong> {escape(customer_name)}</p>
+            <p><strong>Item:</strong> {escape(item_name)}</p>
+            <p><strong>Delivery Address:</strong> {escape(address)}</p>
+            <p><strong>Contact Phone:</strong> {escape(phone)}</p>
             <hr>
             <p>Please process this delivery within 24 hours.</p>
         </body>
