@@ -14,7 +14,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from bson import ObjectId
-import time
 
 # Load environment variables
 load_dotenv()
@@ -332,64 +331,46 @@ def update_coins():
 
 @app.route('/process_video', methods=['POST'])
 def upload_video():
-    max_retries = 3
-    base_delay = 32  # Default from Gemini API error
+    # Check if the post request has the file part
+    if 'file' not in request.files:  # Changed from 'video' to 'file' (common Flutter convention)
+        return jsonify({"error": "No file part"}), 400
     
-    for attempt in range(max_retries):
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file and ai.allowed_file(file.filename):
         try:
-            if 'file' not in request.files:
-                return jsonify({"error": "No file part"}), 400
+            # Create a temporary file
+            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+            file.save(temp_video.name)
             
-            file = request.files['file']
+            summarized_caption = ai.process_video(temp_video.name)
+            extracted_keywords = output.extract_keywords(summarized_caption)
             
-            if file.filename == '':
-                return jsonify({"error": "No selected file"}), 400
-            
-            if file and ai.allowed_file(file.filename):
-                # Create a temporary file
-                temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-                file.save(temp_video.name)
-                
-                summarized_caption = ai.process_video(temp_video.name)
-                extracted_keywords = output.extract_keywords(summarized_caption)
-                
-                # Clean up
-                os.unlink(temp_video.name)
+            # Clean up
+            os.unlink(temp_video.name)
 
-                return jsonify({
-                    "status": "success",
-                    "summarized_caption": summarized_caption,
-                    "extracted_keywords": extracted_keywords
-                })
+            print(extracted_keywords)
             
             return jsonify({
-                "status": "error",
-                "message": "File type not allowed"
-            }), 400
-
+                "status": "success",
+                "summarized_caption": summarized_caption,
+                "extracted_keywords": extracted_keywords
+            })
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {str(e)}")
-            
-            # Handle rate limiting
-            if "429" in str(e) and "retry_delay" in str(e):
-                try:
-                    delay = int(str(e).split("seconds: ")[1].split("}")[0])
-                except:
-                    delay = base_delay
-                
-                if attempt < max_retries - 1:
-                    print(f"Rate limit exceeded. Retrying in {delay} seconds...")
-                    time.sleep(delay)
-                    continue
-            
-            # Clean up temp file if it exists
-            if 'temp_video' in locals() and os.path.exists(temp_video.name):
-                os.unlink(temp_video.name)
-            
+            print("error: " + str(e))
             return jsonify({
                 "status": "error",
                 "message": str(e)
             }), 500
+    else:
+        print('File not allowed')
+        return jsonify({
+            "status": "error",
+            "message": "File type not allowed"
+        }), 400
 
 # Email configuration (replace with your SMTP details)
 SMTP_SERVER = "smtp.gmail.com"
