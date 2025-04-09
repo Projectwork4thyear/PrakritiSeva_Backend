@@ -331,46 +331,64 @@ def update_coins():
 
 @app.route('/process_video', methods=['POST'])
 def upload_video():
-    # Check if the post request has the file part
-    if 'file' not in request.files:  # Changed from 'video' to 'file' (common Flutter convention)
-        return jsonify({"error": "No file part"}), 400
+    max_retries = 3
+    base_delay = 32  # Default from Gemini API error
     
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and ai.allowed_file(file.filename):
+    for attempt in range(max_retries):
         try:
-            # Create a temporary file
-            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-            file.save(temp_video.name)
+            if 'file' not in request.files:
+                return jsonify({"error": "No file part"}), 400
             
-            summarized_caption = ai.process_video(temp_video.name)
-            extracted_keywords = output.extract_keywords(summarized_caption)
+            file = request.files['file']
             
-            # Clean up
-            os.unlink(temp_video.name)
+            if file.filename == '':
+                return jsonify({"error": "No selected file"}), 400
+            
+            if file and ai.allowed_file(file.filename):
+                # Create a temporary file
+                temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+                file.save(temp_video.name)
+                
+                summarized_caption = ai.process_video(temp_video.name)
+                extracted_keywords = output.extract_keywords(summarized_caption)
+                
+                # Clean up
+                os.unlink(temp_video.name)
 
-            print(extracted_keywords)
+                return jsonify({
+                    "status": "success",
+                    "summarized_caption": summarized_caption,
+                    "extracted_keywords": extracted_keywords
+                })
             
             return jsonify({
-                "status": "success",
-                "summarized_caption": summarized_caption,
-                "extracted_keywords": extracted_keywords
-            })
+                "status": "error",
+                "message": "File type not allowed"
+            }), 400
+
         except Exception as e:
-            print("error: " + str(e))
+            print(f"Attempt {attempt + 1} failed: {str(e)}")
+            
+            # Handle rate limiting
+            if "429" in str(e) and "retry_delay" in str(e):
+                try:
+                    delay = int(str(e).split("seconds: ")[1].split("}")[0])
+                except:
+                    delay = base_delay
+                
+                if attempt < max_retries - 1:
+                    print(f"Rate limit exceeded. Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    continue
+            
+            # Clean up temp file if it exists
+            if 'temp_video' in locals() and os.path.exists(temp_video.name):
+                os.unlink(temp_video.name)
+            
             return jsonify({
                 "status": "error",
                 "message": str(e)
             }), 500
-    else:
-        print('File not allowed')
-        return jsonify({
-            "status": "error",
-            "message": "File type not allowed"
-        }), 400
 
 # Email configuration (replace with your SMTP details)
 SMTP_SERVER = "smtp.gmail.com"
@@ -380,67 +398,48 @@ EMAIL_PASSWORD = email_pass # Use app password for Gmail
 
 @app.route('/place_order', methods=['POST'])
 def place_order():
-    max_retries = 3  # Maximum number of retry attempts
-    retry_delay = 7  # Initial delay in seconds (from the error)
-    
-    for attempt in range(max_retries):   
-        try:
-             # Get userId from query parameters
-            user_Id = request.args.get('userId')
-            if not user_Id:
-                return jsonify({"error": "Missing userId"}), 400
-            data = request.get_json()
-            item_id = ObjectId(data['itemId'])
+    try:
+         # Get userId from query parameters
+        user_Id = request.args.get('userId')
+        if not user_Id:
+            return jsonify({"error": "Missing userId"}), 400
+        data = request.get_json()
+        item_id = ObjectId(data['itemId'])
+        
+        # Get user and item details
+        user = users_collection.find_one({"userId": user_Id})
+        item = store_collection.find_one({"_id": item_id})
+        
+        if not user or not item:
+            return jsonify({"error": "User or item not found"}), 404
             
-            # Get user and item details
-            user = users_collection.find_one({"userId": user_Id})
-            item = store_collection.find_one({"_id": item_id})
-            
-            if not user or not item:
-                return jsonify({"error": "User or item not found"}), 404
-                
-            # Create order record
-            order_data = {
-                "userId": user_Id,
-                "itemId": item_id,
-                "name": data['username'],
-                "address": data['address'],
-                "phone": data['phone'],
-                "status": "pending",
-                "timestamp": datetime.now(tz=timezone.utc)
-            }
-            orders_collection.insert_one(order_data)
-            
-            # Send email to delivery partner
-            send_order_email(
-                recipient="samratdevsharma@gmail.com",
-                customer_name=data['username'],
-                item_name=item['name'],
-                address=data['address'],
-                phone=data['phone'],
-                #cc_recipients=user.get('email')
-            )
-            
-            return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
-            
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {str(e)}")
-            
-            # Check if it's a rate limit error and get the retry delay
-            if "429" in str(e) and "retry_delay" in str(e):
-                # Extract the retry delay from the error if available
-                try:
-                    retry_delay = int(str(e).split("seconds: ")[1].split("}")[0])
-                except:
-                    retry_delay = 7  # default to 7 seconds if extraction fails
-                
-                if attempt < max_retries - 1:
-                    print(f"Rate limit exceeded. Retrying in {retry_delay} seconds...")
-                    time.sleep(retry_delay)
-                    continue
-            
-            # For other errors or final attempt failure
-            return jsonify({"error": str(e)}), 500
+        # Create order record
+        order_data = {
+            "userId": user_Id,
+            "itemId": item_id,
+            "name": data['username'],
+            "address": data['address'],
+            "phone": data['phone'],
+            "status": "pending",
+            "timestamp": datetime.now(tz=timezone.utc)
+        }
+        orders_collection.insert_one(order_data)
+        
+        # Send email to delivery partner
+        send_order_email(
+            recipient="samratdevsharma@gmail.com",
+            customer_name=data['username'],
+            item_name=item['name'],
+            address=data['address'],
+            phone=data['phone'],
+            #cc_recipients=user.get('email')
+        )
+        
+        return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
+        
+    except Exception as e:
+        print(str(e))
+        return jsonify({"error": str(e)}), 500
 
 def send_order_email(recipient, customer_name, item_name, address, phone, cc_recipients=None):
     """Send order confirmation email with optional CC recipients.
