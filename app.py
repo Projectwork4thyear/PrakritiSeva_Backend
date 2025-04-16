@@ -414,7 +414,7 @@ def place_order():
             item_name=item['name'],
             address=data['address'],
             phone=data['phone'],
-            #cc_recipients=user.get('email')
+            cc_recipients="dbanik1441@gmail.com"
         )
         
         return jsonify({"success": True, "orderId": str(order_data['_id'])}), 200
